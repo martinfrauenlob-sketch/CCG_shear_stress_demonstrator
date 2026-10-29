@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Microfluidics: shear stress and velocity profile</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:22px;background:#f1f6fa;font-family:Arial,Helvetica,sans-serif;color:#18384d}
+.shell{max-width:1320px;margin:auto;padding:28px;background:white;border:1px solid #d5e2eb;border-radius:18px;box-shadow:0 5px 25px #2343a014}
+h1{margin:0 0 6px;font-size:29px}
+.intro{color:#526e80;margin:0 0 24px;line-height:1.5}
+.layout{display:grid;grid-template-columns:minmax(290px,375px) minmax(0,1fr);gap:28px}
+.control{margin-bottom:22px}
+.control label{display:flex;justify-content:space-between;font-size:15px;font-weight:700;gap:12px}
+.control output{color:#096d98;white-space:nowrap}
+input[type=range]{display:block;width:100%;margin-top:13px;accent-color:#0c86b6}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}
+.stat{background:#eaf4fa;border-radius:12px;padding:15px;text-align:center}
+.stat small{display:block;color:#567184;font-size:12px}
+.stat b{font-size:22px;color:#006f9a;display:block;margin-top:8px}
+.graph{border:1px solid #d8e5ed;border-radius:12px;padding:9px}
+svg{width:100%;height:auto;display:block}
+#curve{fill:none;stroke:#087ead;stroke-width:4}
+#fill{fill:#d9eff8;stroke:none}
+#shearLine{fill:none;stroke:#20964f;stroke-width:4}
+#centerLine{stroke:#9fb3c2;stroke-dasharray:4 5}
+#axisX,#axisY,#axisTop{stroke:#59768b;stroke-width:1.8}
+.axistext{font-size:13px;fill:#567184}
+.veltext{fill:#087ead}
+.sheartext{fill:#20964f}
+.plotTitle{font-size:16px;fill:#18384d;font-weight:700}
+.eq{margin-top:18px;background:#f4f8fb;padding:13px 16px;border-radius:10px;line-height:1.7}
+.hint{font-size:13px;color:#5b7280;line-height:1.6}
+.buttons{display:flex;gap:10px;margin-top:15px;flex-wrap:wrap}
+button{border:none;border-radius:8px;background:#0c709a;color:white;padding:10px 15px;cursor:pointer}
+button.secondary{background:#e8f0f5;color:#18384d}
+.flowbar{margin-top:13px;font-size:13px;color:#496778}
+.notice{background:#fff7e4;border-left:4px solid #d7a43c;padding:12px 14px;border-radius:5px;font-size:13px;line-height:1.5;margin-top:16px}
+.legend{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px;color:#4f6777;font-size:13px}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.legend i{display:inline-block;width:24px;height:0;border-top-width:4px;border-top-style:solid}
+.legend .vel i{border-top-color:#087ead}
+.legend .shear i{border-top-color:#20964f}
+.legend .fillbox{width:18px;height:12px;background:#d9eff8;border:1px solid #bddaea}
+@media(max-width:850px){.layout{grid-template-columns:1fr}.shell{padding:17px}.stats{grid-template-columns:1fr 1fr}h1{font-size:24px}}
+@media print{body{padding:0;background:white}.shell{box-shadow:none;border:0}.buttons{display:none}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <h1>Shear stress &amp; velocity distribution</h1>
+  <p class="intro">Interactive microfluidic channel model · adjust the inputs to see the flow velocity profile across the channel height and the corresponding <strong>shear-stress magnitude</strong> shown in green.</p>
+  <div class="layout">
+    <section>
+      <div class="control"><label for="q">Volumetric flow rate <output id="qv"></output></label><input type="range" id="q" min="1" max="200" step="1" value="10"></div>
+      <div class="control"><label for="h">Channel height <output id="hv"></output></label><input type="range" id="h" min="50" max="300" step="10" value="100"></div>
+      <div class="control"><label for="w">Channel width <output id="wv"></output></label><input type="range" id="w" min="0.5" max="2" step="0.1" value="1"></div>
+      <div class="control"><label for="mu">Dynamic viscosity <output id="muv"></output></label><input type="range" id="mu" min="0.5" max="5" step="0.1" value="1"></div>
+      <div class="buttons"><button id="reset">Reset</button><button class="secondary" onclick="window.print()">Print / PDF</button></div>
+      <div class="eq"><strong>Wide rectangular channel</strong><br>Mean velocity: <em>U</em> = <em>Q</em> / (<em>w h</em>)<br>Velocity profile: <em>u(y)</em> = 6<em>U</em> (<em>y</em>/<em>h</em>)(1 − <em>y</em>/<em>h</em>)<br>Shear-stress magnitude: |<em>τ(y)</em>| = <em>τ<sub>w</sub></em>|1 − 2<em>y</em>/<em>h</em>|<br>Wall shear: <em>τ<sub>w</sub></em> ≈ 6<em>μU</em>/<em>h</em></div>
+      <p class="hint">Assumptions: Newtonian fluid, pressure-driven, fully developed laminar flow, and a channel much wider than its height. The blue curve is the parabolic velocity distribution. The green line is the shear-stress <strong>magnitude</strong>, shown on the top x-axis. Both x-axes are fixed across the full slider range so all possible profiles remain visible.</p>
+    </section>
+    <section>
+      <div class="graph">
+        <svg viewBox="0 0 660 470" aria-label="Live velocity and shear stress magnitude distributions across the channel height" role="img">
+          <text class="plotTitle" x="28" y="28">Cross-section distributions</text>
+          <text class="axistext" x="28" y="48">Blue: velocity profile · Green: shear-stress magnitude</text>
+          <line id="axisTop" x1="90" y1="70" x2="596" y2="70"></line>
+          <line id="axisX" x1="90" y1="412" x2="596" y2="412"></line>
+          <line id="axisY" x1="90" y1="80" x2="90" y2="412"></line>
+          <path id="fill"></path>
+          <path id="curve"></path>
+          <path id="shearLine"></path>
+          <path id="centerLine" d="M90 340 H596"></path>
+          <circle id="peak" r="6" fill="#087ead"></circle>
+          <g class="axistext">
+            <text x="82" y="417" text-anchor="end">0</text>
+            <text x="82" y="306.3" text-anchor="end">100</text>
+            <text x="82" y="195.7" text-anchor="end">200</text>
+            <text x="82" y="85" text-anchor="end">300</text>
+            <text x="22" y="246" text-anchor="middle" transform="rotate(-90 22 246)">Position y (µm)</text>
+          </g>
+          <g class="axistext veltext">
+            <text x="90" y="433" text-anchor="middle">0</text>
+            <text x="216.5" y="433" text-anchor="middle">50</text>
+            <text x="343" y="433" text-anchor="middle">100</text>
+            <text x="469.5" y="433" text-anchor="middle">150</text>
+            <text x="596" y="433" text-anchor="middle">200</text>
+            <text x="343" y="458" text-anchor="middle">Velocity u(y) (mm/s)</text>
+          </g>
+          <g class="axistext sheartext">
+            <text x="90" y="62" text-anchor="middle">0</text>
+            <text x="216.5" y="62" text-anchor="middle">10</text>
+            <text x="343" y="62" text-anchor="middle">20</text>
+            <text x="469.5" y="62" text-anchor="middle">30</text>
+            <text x="596" y="62" text-anchor="middle">40</text>
+            <text x="343" y="20" text-anchor="middle">Shear stress |τ(y)| (dyn/cm²)</text>
+          </g>
+          <g stroke="#c75c3c" stroke-width="3">
+            <line id="topwall" x1="92" y1="301.3" x2="155" y2="301.3"></line>
+            <line id="bottomwall" x1="92" y1="412" x2="155" y2="412"></line>
+          </g>
+          <g fill="#c75c3c" font-size="12">
+            <text id="topwallLabel" x="164" y="305.3">upper wall</text>
+            <text x="164" y="406">lower wall</text>
+          </g>
+        </svg>
+      </div>
+      <div class="legend">
+        <span class="vel"><i></i> velocity profile</span>
+        <span><span class="fillbox"></span> physical channel height</span>
+        <span class="shear"><i></i> shear-stress magnitude</span>
+      </div>
+      <div class="flowbar" id="readout"></div>
+      <div class="notice"><b>Teaching point:</b> The green curve now shows <strong>shear-stress magnitude</strong>, so it is highest at both walls and zero at the centerline. The top scale is fixed at 0–40 dyn/cm². If the actual value exceeds 40 dyn/cm², the curve extends beyond the displayed range and is intentionally clipped.</div>
+    </section>
+  </div>
+  <div class="stats" aria-live="polite">
+    <div class="stat"><small>Wall shear stress</small><b id="tau"></b><small id="dyn"></small></div>
+    <div class="stat"><small>Average shear stress (magnitude)</small><b id="tauavg"></b><small id="avgdyn"></small></div>
+    <div class="stat"><small>Mean velocity</small><b id="umean"></b></div>
+    <div class="stat"><small>Centerline velocity</small><b id="umax"></b></div>
+  </div>
+  <p class="hint">Average shear stress here means the height-average of <em>|τ(y)|</em>, which equals half the wall shear stress for this parabolic model.</p>
+</div>
+<script>
+const names=['q','h','w','mu'];
+const $=id=>document.getElementById(id);
+function fmt(n,d=2){return Number(n).toFixed(d)}
+function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
+function update(){
+  let Q=+$('q').value,h=+$('h').value,w=+$('w').value,mu=+$('mu').value;
+  let Qm3s=Q*1e-9/60,hm=h*1e-6,wm=w*1e-3,mus=mu*1e-3;
+  let U=Qm3s/(wm*hm), umax=1.5*U, tau=6*mus*U/hm; // tau in Pa
+  let tauDyn=tau*10;
+  $('qv').textContent=Q+' µL/min';
+  $('hv').textContent=h+' µm';
+  $('wv').textContent=fmt(w,1)+' mm';
+  $('muv').textContent=fmt(mu,1)+' mPa·s';
+  $('tau').textContent=fmt(tau,3)+' Pa';
+  $('dyn').textContent=fmt(tauDyn,2)+' dyn/cm²';
+  $('tauavg').textContent=fmt(tau/2,3)+' Pa';
+  $('avgdyn').textContent=fmt(tauDyn/2,2)+' dyn/cm²';
+  $('umean').textContent=fmt(U*1000,2)+' mm/s';
+  $('umax').textContent=fmt(umax*1000,2)+' mm/s';
+  const x0=90, plotW=506, y0=412, plotH=332;
+  const fixedVmax=200; // mm/s
+  const fixedYmax=300; // um
+  const fixedTauMaxDyn=40; // dyn/cm2
+  const yTop = y0 - plotH*h/fixedYmax;
+  const yCenter = y0 - plotH*(h/2)/fixedYmax;
+  let curve=[], fill=[], shear=[];
+  for(let i=0;i<=160;i++){
+    let xi=i/160;
+    let yPhys = xi*h;
+    let vmm = 6*U*xi*(1-xi)*1000;
+    let tauMagDyn = Math.abs(tauDyn*(1-2*xi));
+    let pxV = x0 + plotW*(vmm/fixedVmax);
+    let py = y0 - plotH*(yPhys/fixedYmax);
+    let pxTau = x0 + plotW*(clamp(tauMagDyn,0,fixedTauMaxDyn)/fixedTauMaxDyn);
+    curve.push((i?'L':'M')+pxV.toFixed(2)+' '+py.toFixed(2));
+    fill.push('L'+pxV.toFixed(2)+' '+py.toFixed(2));
+    shear.push((i?'L':'M')+pxTau.toFixed(2)+' '+py.toFixed(2));
+  }
+  $('curve').setAttribute('d',curve.join(' '));
+  $('fill').setAttribute('d','M'+x0+' '+y0+' '+fill.join(' ')+' L'+x0+' '+yTop.toFixed(2)+' Z');
+  $('shearLine').setAttribute('d',shear.join(' '));
+  $('peak').setAttribute('cx',(x0 + plotW*(umax*1000/fixedVmax)).toFixed(2));
+  $('peak').setAttribute('cy',yCenter.toFixed(2));
+  $('centerLine').setAttribute('d','M'+x0+' '+yCenter.toFixed(2)+' H596');
+  $('topwall').setAttribute('y1',yTop.toFixed(2));
+  $('topwall').setAttribute('y2',yTop.toFixed(2));
+  $('topwallLabel').setAttribute('y',(yTop+4).toFixed(2));
+  const clipped = tauDyn > fixedTauMaxDyn ? ' The wall value exceeds 40 dyn/cm², so the green curve is clipped at the plot boundary.' : '';
+  $('readout').textContent = 'Lower wall: |τ| = ' + fmt(tauDyn,2) + ' dyn/cm². Centerline: |τ| = 0 dyn/cm² and u = ' + fmt(umax*1000,3) + ' mm/s. Upper wall: |τ| = ' + fmt(tauDyn,2) + ' dyn/cm².' + clipped;
+}
+names.forEach(id=>$(id).addEventListener('input',update));
+$('reset').addEventListener('click',()=>{[10,100,1,1].forEach((v,i)=>$(names[i]).value=v);update()});
+update();
+</script>
+</body>
+</html>
